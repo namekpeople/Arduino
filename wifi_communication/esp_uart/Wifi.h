@@ -4,7 +4,7 @@
 
 #define STASSID "Khanh Hai 2.4G"
 #define STAPSK  "66666666"
-#define SERVER_IP "192.168.1.7"
+#define SERVER_IP "192.168.1.8"
 #define SERVER_PORT 3000
 
 int ket_noi_wifi(const char * SSID, const char * passwd);

@@ -31,7 +31,7 @@ void loop() {
   }
   int datalen2 = receive_data_from_server(data);
   if (datalen2 > 0) {
-    Serial.println(data);
+    Serial.println((char)data);
     gui_data_sang_adruino(data);
   }
   //Serial.println(data);

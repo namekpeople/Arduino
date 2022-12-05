@@ -1,10 +1,4 @@
-//softserial
-#include <SoftwareSerial.h>
-const byte RX = 2;
-const byte TX = 3;
-SoftwareSerial mySerial = SoftwareSerial(RX, TX);
-
-//lcd, cảm biến
+//lcd, button, servo
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -19,66 +13,73 @@ int count = 0;
 #define RST_PIN         9
 #define SS_RA         8           // Configurable, see typical pin layout above
 #define SS_VAO         10          // Configurable, see typical pin layout above
-
-//servo
 Servo sv_vao, sv_ra;
-int sv[3];
-MFRC522 mfrc522_vao(SS_VAO, RST_PIN);   // Create mfrc522_ra instance.
+int sv;
+
 MFRC522 mfrc522_ra(SS_RA, RST_PIN);   // Create mfrc522_ra instance.
-String UIDSend = "";
+MFRC522 mfrc522_vao(SS_VAO, RST_PIN);   // Create mfrc522_ra instance.
+
+long prevTime = 0;
 
 void setup()
 {
   // initialize the LCD
-  Serial.begin(115200);
-  mySerial.begin(115200);
+  Serial.begin(9600);
   lcd.init();
   lcd.backlight();
 
   // initialize the RFID
   while (!Serial);    // Do nothing if no serial port is opened (added for Arduinos based on ATMEGA32U4)
-  while (!mySerial);
   SPI.begin();        // Init SPI bus
-
+  //rfid_ra
+  mfrc522_ra.PCD_Init(); // Init mfrc522_ra card
+  sv_ra.attach(6);
+  sv_ra.write(0);
   //rfid_vao
   mfrc522_vao.PCD_Init(); // Init mfrc522_vao card
   sv_vao.attach(5);
   sv_vao.write(0);
-  //rfid_ra
-  mfrc522_ra.PCD_Init(); // Init mfrc522_vao card
-  sv_ra.attach(6);
-  sv_ra.write(0);
 }
 
 void loop()
 {
+  button();
+  stop_servo();
   hien_thi();
-  read_ESP();
   the_vao();
   the_ra();
 }
 
-void read_ESP() {
-  while (mySerial.available())
+void button() {
+  while (Serial.available())
   {
-    for (int i = 0; i < 3; i++) {
-      sv[i] = mySerial.read();
-      Serial.println(sv[i]);
+    sv = Serial.read();
+    Serial.println(sv);
+    delay(200);
+  }
+  if (sv == '1')
+  {
+    if (count == 4) sv = 0;
+    else {
+      sv_vao.write(100);
+      sv = 0;
+      prevTime = millis();
     }
   }
-  if (sv[0] == 1)
-  {
-    sv_vao.write(100);
-    delay(3000);
-    sv_vao.write(0);
-    sv[0] = {};
-  }
-  if (sv[0] == 2)
+  if (sv == '2')
   {
     sv_ra.write(100);
-    delay(3000); 
+    sv = 0;
+    prevTime = millis();
+  }
+}
+
+void stop_servo() {
+  if (millis() - prevTime >= 3000 && sv_vao.read() == 100) {
+    sv_vao.write(0);
+  }
+  if (millis() - prevTime >= 3000 && sv_ra.read() == 100) {
     sv_ra.write(0);
-    sv[0] = {};
   }
 }
 
@@ -89,13 +90,13 @@ void the_vao() {
   // Select one of the cards
   if ( ! mfrc522_vao.PICC_ReadCardSerial())
     return;
-  String content = "ci";
-  for (int i = 0; i < mfrc522_vao.uid.size; i++)
-  {
-    content.concat(String(mfrc522_vao.uid.uidByte[i], HEX));
-  }
-  content.toUpperCase();
-  sendUID(content);
+
+  Serial.print("ci");
+  Serial.print(mfrc522_vao.uid.uidByte[0], HEX);
+  Serial.print(mfrc522_vao.uid.uidByte[1], HEX);
+  Serial.print(mfrc522_vao.uid.uidByte[2], HEX);
+  Serial.println(mfrc522_vao.uid.uidByte[3], HEX);
+
   mfrc522_vao.PICC_HaltA();
   mfrc522_vao.PCD_StopCrypto1();
 }
@@ -107,25 +108,14 @@ void the_ra() {
   // Select one of the cards
   if ( ! mfrc522_ra.PICC_ReadCardSerial())
     return;
-  String content = "co";
-  for (int i = 0; i < mfrc522_ra.uid.size; i++)
-  {
-    content.concat(String(mfrc522_ra.uid.uidByte[i], HEX));
-  }
-  content.toUpperCase();
-  sendUID(content);
+  Serial.print("co");
+  Serial.print(mfrc522_ra.uid.uidByte[0], HEX);
+  Serial.print(mfrc522_ra.uid.uidByte[1], HEX);
+  Serial.print(mfrc522_ra.uid.uidByte[2], HEX);
+  Serial.println(mfrc522_ra.uid.uidByte[3], HEX);
+
   mfrc522_ra.PICC_HaltA();
   mfrc522_ra.PCD_StopCrypto1();
-}
-
-void sendUID(String content) {
-  UIDSend = "";
-  UIDSend = content;
-  Serial.print("Send to ESP: ");
-  Serial.println(UIDSend);
-  Serial.flush();
-  mySerial.println(UIDSend);
-  mySerial.flush();
 }
 
 void hien_thi() {
