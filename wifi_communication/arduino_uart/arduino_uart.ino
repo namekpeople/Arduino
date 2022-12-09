@@ -22,10 +22,14 @@ int count = 0;
 
 //servo
 Servo sv_vao, sv_ra;
-int sv[3];
+int temp;
+int dem = 0;
+String sv;
 MFRC522 mfrc522_vao(SS_VAO, RST_PIN);   // Create mfrc522_ra instance.
 MFRC522 mfrc522_ra(SS_RA, RST_PIN);   // Create mfrc522_ra instance.
 String UIDSend = "";
+
+long prevTime = 0;
 
 void setup()
 {
@@ -54,31 +58,38 @@ void loop()
 {
   hien_thi();
   read_ESP();
+  stop_servo();
   the_vao();
   the_ra();
 }
 
 void read_ESP() {
-  while (mySerial.available())
+  if (mySerial.available() > 0)
   {
-    for (int i = 0; i < 3; i++) {
-      sv[i] = mySerial.read();
-      Serial.println(sv[i]);
-    }
+    temp = mySerial.read();
+    if (temp < 3 && temp > 0) sv.concat(temp);
+    if (sv != "") Serial.println(sv);
   }
-  if (sv[0] == 1)
+  if (sv.startsWith((String)'1'))
   {
     sv_vao.write(100);
-    delay(3000);
-    sv_vao.write(0);
-    sv[0] = {};
+    sv = "";
+    prevTime = millis();
   }
-  if (sv[0] == 2)
+  if (sv.startsWith((String)'2'))
   {
     sv_ra.write(100);
-    delay(3000); 
+    sv = "";
+    prevTime = millis();
+  }
+}
+
+void stop_servo() {
+  if (millis() - prevTime >= 3000 && sv_vao.read() == 100) {
+    sv_vao.write(0);
+  }
+  if (millis() - prevTime >= 3000 && sv_ra.read() == 100) {
     sv_ra.write(0);
-    sv[0] = {};
   }
 }
 

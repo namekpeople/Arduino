@@ -55,7 +55,7 @@ void button() {
   {
     sv = Serial.read();
     Serial.println(sv);
-    delay(200);
+//    delay(200);
   }
   if (sv == '1')
   {
