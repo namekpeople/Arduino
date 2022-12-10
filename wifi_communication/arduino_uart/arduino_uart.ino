@@ -10,6 +10,7 @@ SoftwareSerial mySerial = SoftwareSerial(RX, TX);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 int a = 0 , b = 0, c = 0, d = 0;
 int count = 0;
+long err = 0;
 
 //rfid
 #include <SPI.h>
@@ -56,7 +57,9 @@ void setup()
 
 void loop()
 {
-  hien_thi();
+  if (millis() - err >= 3000) {
+    hien_thi();
+  }
   read_ESP();
   stop_servo();
   the_vao();
@@ -67,7 +70,7 @@ void read_ESP() {
   if (mySerial.available() > 0)
   {
     temp = mySerial.read();
-    if (temp < 3 && temp > 0) sv.concat(temp);
+    if (temp < 5 && temp > 0) sv.concat(temp);
     if (sv != "") Serial.println(sv);
   }
   if (sv.startsWith((String)'1'))
@@ -76,11 +79,27 @@ void read_ESP() {
     sv = "";
     prevTime = millis();
   }
-  if (sv.startsWith((String)'2'))
+  else if (sv.startsWith((String)'2'))
   {
     sv_ra.write(100);
     sv = "";
     prevTime = millis();
+  }
+  else if (sv.startsWith((String)'3'))
+  {
+    lcd.clear();
+    lcd.setCursor(0, 1);
+    lcd.print("Unavailable UID");
+    sv = "";
+    err = millis();
+  }
+  else if (sv.startsWith((String)'4'))
+  {
+    lcd.clear();
+    lcd.setCursor(0, 1);
+    lcd.print("Unavaible car");
+    sv = "";
+    err = millis();
   }
 }
 
@@ -170,25 +189,25 @@ void hien_thi() {
   {
     d = 1;
   }
-  else
-  {
-    d = 0;
-  }
+    else
+    {
+      d = 0;
+    }
 
-  count = a + b + c + d;
+    count = a + b + c + d;
 
-  if (count == 4)
-  {
-    lcd.setCursor(0, 1);
-    lcd.print("Full slot, Sorry");
-  }
-  else
-  {
-    lcd.setCursor(0, 1);
-    lcd.print(4 - count);
-    lcd.print(" Slot available");
-  }
+    if (count == 4)
+    {
+      lcd.setCursor(0, 1);
+      lcd.print("Full slot, Sorry");
+    }
+    else
+    {
+      lcd.setCursor(0, 1);
+      lcd.print(4 - count);
+      lcd.print(" Slot available");
+    }
 
-  lcd.setCursor(3, 0);
-  lcd.print("UTC Parking");
-}
+    lcd.setCursor(3, 0);
+    lcd.print("UTC Parking");
+  }

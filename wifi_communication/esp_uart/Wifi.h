@@ -4,7 +4,7 @@
 
 #define STASSID "Khanh Hai 2.4G"
 #define STAPSK  "66666666"
-#define SERVER_IP "192.168.1.8"
+#define SERVER_IP "192.168.1.3"
 //#define STASSID "test-mang"
 //#define STAPSK  "mothaiba"
 //#define SERVER_IP "192.168.222.203"
